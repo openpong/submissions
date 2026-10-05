@@ -1,0 +1,23 @@
+name: check entry
+
+# Runs on the pull request's own code with a read-only token and no secrets: it only reads the
+# changed files, so an entry can be checked without anything being trusted.
+on:
+  pull_request:
+    paths: ["entries/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the entry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: python3 tools/check_entry.py
