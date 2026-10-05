@@ -1,0 +1,2 @@
+# openpong league: encrypt entries to this key with  age -R recipient.txt -o bot.safetensors.age mybot.safetensors
+age1jq6ql35j9u98j3guxdwr6qar2myyvq6lkmjq8pzxr2cnrp79zgmsvswx67
