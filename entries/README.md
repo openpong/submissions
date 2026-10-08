@@ -1,2 +1,3 @@
-One folder per bot: `entries/<bot-name>/bot.safetensors.age` and `entries/<bot-name>/entry.json`.
+One folder per bot, inside its league's folder:
+`entries/<league>/<bot-name>/bot.safetensors.age` and `entries/<league>/<bot-name>/entry.json`.
 See the repository README for the format and the rules.

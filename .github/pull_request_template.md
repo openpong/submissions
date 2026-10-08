@@ -1,6 +1,6 @@
-<!-- One entry per pull request: a single folder under entries/ holding bot.safetensors.age and entry.json. -->
+<!-- One entry per pull request: a single folder entries/<league>/<bot-name>/ holding bot.safetensors.age and entry.json. -->
 
 Bot name:
 
-- [ ] `bot.safetensors.age` was encrypted with `age -R recipient.txt`
-- [ ] the decrypted file carries the league's physics fingerprint in its metadata
+- [ ] `python3 tools/admit.py` admits the unencrypted file
+- [ ] `bot.safetensors.age` was encrypted with `age -R leagues/<league>/recipient.txt`

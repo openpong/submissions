@@ -1,0 +1,63 @@
+name: admit entry
+
+# Decrypts an entry with its league's key and runs the admission check on the weights.
+#
+# This holds a secret, so it never runs anything from the pull request. pull_request_target runs this
+# file and tools/ as they are on main; the pull request's commits are fetched as data and only two of
+# its files are ever read, through git, after tools/check_entry.py has vetted the entry's names, shape
+# and size. The decrypted weights exist only in a temporary folder on the runner, are never uploaded,
+# and the log carries only the verdict.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths: ["entries/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  admit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch the pull request as data
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: git fetch --no-tags origin "+refs/pull/$PR/head:refs/remotes/pr/head"
+      - name: Check the entry's shape
+        id: shape
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: refs/remotes/pr/head
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: python3 tools/check_entry.py --github-output "$GITHUB_OUTPUT"
+      - name: Install age and numpy
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age python3-numpy > /dev/null
+      - name: Decrypt and admit
+        env:
+          LEAGUE: ${{ steps.shape.outputs.league }}
+          BOT: ${{ steps.shape.outputs.bot }}
+          AGE_KEY: ${{ secrets[steps.shape.outputs.secret] }}
+        run: |
+          if [ -z "$AGE_KEY" ]; then
+            echo "::error::league $LEAGUE has no key set up for admission yet"
+            exit 1
+          fi
+          umask 077
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          printf '%s\n' "$AGE_KEY" > "$work/key"
+          git show "refs/remotes/pr/head:entries/$LEAGUE/$BOT/bot.safetensors.age" > "$work/bot.age"
+          if ! age -d -i "$work/key" -o "$work/bot.safetensors" "$work/bot.age" 2> /dev/null; then
+            echo "::error::bot.safetensors.age does not decrypt with the $LEAGUE key; encrypt it with age -R leagues/$LEAGUE/recipient.txt"
+            exit 1
+          fi
+          rm -f "$work/key"
+          python3 tools/admit.py "$work/bot.safetensors" --league "$LEAGUE" --brief

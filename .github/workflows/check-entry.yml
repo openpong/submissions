@@ -1,7 +1,7 @@
 name: check entry
 
-# Runs on the pull request's own code with a read-only token and no secrets: it only reads the
-# changed files, so an entry can be checked without anything being trusted.
+# Runs on the pull request's own code with a read-only token and no secrets, so anyone's pull request
+# can be checked without trusting it. It checks the entry's shape; admit-entry.yml checks the weights.
 on:
   pull_request:
     paths: ["entries/**"]
@@ -13,11 +13,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check the entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: HEAD
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: python3 tools/check_entry.py
